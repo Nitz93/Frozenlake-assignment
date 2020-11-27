@@ -100,7 +100,7 @@ class FrozenLake(Environment):
         # TODO:
             
         # Up, down, left, right, stay.
-        self.actions = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
+        self.actions = [(-1, 0),(0, -1), (1, 0), (0, 1)]
         
         # Precomputed transition probabilities
         self._p = np.zeros((self.n_states, self.n_states, self.n_actions))
@@ -259,10 +259,30 @@ def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
     
     q = np.zeros((env.n_states, env.n_actions))
     
+    def select_action(state):       
+        action=0
+        if np.random.uniform(0, 1) < epsilon: 
+            action = env.action_space.sample() 
+        else: 
+            action = np.argmax(q[state, :]) 
+        return action 
+    
+    
     for i in range(max_episodes):
         s = env.reset()
         # TODO:
-    
+        action = select_action(s)
+        done = False
+        while not done:
+            s2, reward, done, info = env.step(action) 
+            action2 = select_action(s2) 
+          
+            #Learning the Q-value 
+            q[s, action] = q[s, action] + eta * ((reward + gamma * q[s2, action2])  -  q[s, action]) 
+      
+            s = s2 
+            action1 = action2 
+        
     policy = q.argmax(axis=1)
     value = q.max(axis=1)
         
