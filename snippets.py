@@ -356,12 +356,22 @@ def linear_sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
     theta = np.zeros(env.n_features)
     
     for i in range(max_episodes):
-        features = env.reset()
+        features = env.reset() 
         
-        q = features.dot(theta)
+        q = features.dot(theta) #V(s; θ)
+        gradientThetaFeatures = np.gradient(q[s]) #∇θV(s; θ)
 
         # TODO:
-    
+        done = False
+        while not done:
+            s2, reward, done, info = env.step(action) 
+            action1 = policy 
+            
+            #Theta Value
+            #θ ← θ + α[r + γV(s2; θ) − V(s; θ)]∇θV(s; θ)
+            theta =  theta + eta * (reward + (gamma * q[s2]) - q[s]) * gradientThetaFeatures
+            s = s2 
+            
     return theta
     
 def linear_q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):
