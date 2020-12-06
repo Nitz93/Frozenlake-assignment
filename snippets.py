@@ -259,26 +259,27 @@ def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
     
     q = np.zeros((env.n_states, env.n_actions))
     
-    def select_action(state):       
+    def select_action(state,e):       
         action=0
-        if np.random.uniform(0, 1) < epsilon: 
-            action = env.action_space.sample() 
-        else: 
+        if (1 - e) > e: 
             action = np.argmax(q[state, :]) 
+        else: 
+            action = np.random.choice(range(4))
         return action 
     
     
     for i in range(max_episodes):
         s = env.reset()
+        e = epsilon[i]
         # TODO:
-        action = select_action(s)
+        action = select_action(s,e)      
         done = False
         while not done:
             s2, reward, done, info = env.step(action) 
-            action2 = select_action(s2) 
+            action2 = select_action(s2,e) 
           
             #Learning the Q-value 
-            q[s, action] = q[s, action] + eta * ((reward + gamma * q[s2, action2])  -  q[s, action]) 
+            q[s, action] = q[s, action] + eta[i] * ((reward + gamma * q[s2, action2])  -  q[s, action]) 
       
             s = s2 
             action1 = action2 
@@ -296,9 +297,30 @@ def q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):
     
     q = np.zeros((env.n_states, env.n_actions))
     
+    def select_action(state,e):       
+        action=0
+        if (1 - e) > e: 
+            action = np.argmax(q[state, :]) 
+        else: 
+            action = np.random.choice(range(4))
+        return action
+    
+    
     for i in range(max_episodes):
         s = env.reset()
         # TODO:
+        e = epsilon[i]
+        action = select_action(s,e)
+        done = False
+        while not done:
+            s2, reward, done, info = env.step(action) 
+            action2 = select_action(s2, e) 
+          
+            #Learning the Q-value 
+            q[s, action] = q[s, action] + eta[i] * ((reward + gamma * np.max(q[s2,action2]))  -  q[s, action]) 
+      
+            s = s2 
+            action1 = action2 
         
     policy = q.argmax(axis=1)
     value = q.max(axis=1)
@@ -356,22 +378,12 @@ def linear_sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
     theta = np.zeros(env.n_features)
     
     for i in range(max_episodes):
-        features = env.reset() 
+        features = env.reset()
         
-        q = features.dot(theta) #V(s; θ)
-        gradientThetaFeatures = np.gradient(q[s]) #∇θV(s; θ)
+        q = features.dot(theta)
 
         # TODO:
-        done = False
-        while not done:
-            s2, reward, done, info = env.step(action) 
-            action1 = policy 
-            
-            #Theta Value
-            #θ ← θ + α[r + γV(s2; θ) − V(s; θ)]∇θV(s; θ)
-            theta =  theta + eta * (reward + (gamma * q[s2]) - q[s]) * gradientThetaFeatures
-            s = s2 
-            
+    
     return theta
     
 def linear_q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):
@@ -391,7 +403,7 @@ def linear_q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):
 
 ################ Main function ################
 
-def main():
+ def main():
     seed = 0
     
     # Small lake
