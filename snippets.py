@@ -41,6 +41,7 @@ class Environment(EnvironmentModel):
         EnvironmentModel.__init__(self, n_states, n_actions, seed)
         
         self.max_steps = max_steps
+        self.random_state = np.random.RandomState(seed)
         
         self.pi = pi
         if self.pi is None:
@@ -85,17 +86,17 @@ class FrozenLake(Environment):
         
         self.slip = slip
         
-        n_states = self.lake.size + 1
-        n_actions = 4
+        self.n_states = self.lake.size + 1
+        self.n_actions = 4
         
         # Indices to states (coordinates), states (coordinates) to indices 
-        self.itos = list(product(range(lake.shape[0]), range(lake.shape[1])))
+        self.itos = list(product(range(self.lake.shape[0]), range(self.lake.shape[1])))
         self.stoi = {s: i for (i, s) in enumerate(self.itos)}
         
-        pi = np.zeros(n_states, dtype=float)
+        pi = np.zeros(self.n_states, dtype=float)
         pi[np.where(self.lake_flat == '&')[0]] = 1.0
         
-        self.absorbing_state = n_states - 1
+        self.absorbing_state = self.n_states - 1
         
         # TODO:
             
@@ -115,6 +116,10 @@ class FrozenLake(Environment):
                 self._p[next_state_index, state_index, action_index] = self.slip
         
     def step(self, action):
+        
+        if np.random.uniform(0, 1) < self.slip:
+            action = np.random.choice(3)
+        
         state, reward, done = Environment.step(self, action)
         
         done = (state == self.absorbing_state) or done
@@ -261,10 +266,10 @@ def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
     
     def select_action(state,e):       
         action=0
-        if (1 - e) > e: 
-            action = np.argmax(q[state, :]) 
+        if np.random.uniform(0, 1) < e: 
+            action = np.random.choice(range(4))            
         else: 
-            action = np.random.choice(range(4))
+            action = np.argmax(q[state, :])
         return action 
     
     
@@ -299,11 +304,11 @@ def q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):
     
     def select_action(state,e):       
         action=0
-        if (1 - e) > e: 
-            action = np.argmax(q[state, :]) 
+        if np.random.uniform(0, 1) < e: 
+            action = np.random.choice(range(4))            
         else: 
-            action = np.random.choice(range(4))
-        return action
+            action = np.argmax(q[state, :])
+        return action 
     
     
     for i in range(max_episodes):
@@ -383,6 +388,19 @@ def linear_sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
         q = features.dot(theta)
 
         # TODO:
+        gradientThetaFeatures = np.gradient(q[s]) #∇θV(s; θ)
+
+        # TODO:
+
+        done = False
+        while not done:
+            s2, reward, done, info = env.step(action) 
+            action1 = policy 
+
+            #Theta Value
+            #θ ← θ + α[r + γV(s2; θ) − V(s; θ)]∇θV(s; θ)
+            theta =  theta + eta * (reward + (gamma * q[s2]) - q[s]) * gradientThetaFeatures
+            s = s2 
     
     return theta
     
@@ -396,14 +414,33 @@ def linear_q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):
     
     for i in range(max_episodes):
         features = env.reset()
+        q = features.dot(theta)
         
         # TODO:
-
+        s = np.random.RandomState(seed)
+        for a1 in range(3):
+            q[a1] = theta.dot(features)
+        done = False
+        while not done:
+            action=0
+            for a in range(3):
+                if np.random.uniform(0, 1) < epsilon[i]: 
+                    action = np.random.choice(range(4))            
+                else: 
+                    action = np.argmax(q[a])
+                s1, reward, done, info = env.step(action)
+                delta = reward - q[a]
+                for a1 in range(3):
+                    q[a1] = theta.dot(features)
+                delta = delta + gamma * np.max(q)
+                theta = theta + eta[i] * delta * features[s,a]
+                s = s1
+                                
     return theta    
 
 ################ Main function ################
 
- def main():
+def main():
     seed = 0
     
     # Small lake
