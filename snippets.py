@@ -379,35 +379,41 @@ class LinearWrapper:
     def render(self, policy=None, value=None):
         self.env.render(policy, value)
         
-# def linear_sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
-#     random_state = np.random.RandomState(seed)
-    
-#     eta = np.linspace(eta, 0, max_episodes)
-#     epsilon = np.linspace(epsilon, 0, max_episodes)
-    
-#     theta = np.zeros(env.n_features)
-    
-#     for i in range(max_episodes):
-#         features = env.reset()
-        
-#         q = features.dot(theta)
+def linear_sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
+    import random as rand
 
-#         # TODO:
-#         gradientThetaFeatures = np.gradient(q[s]) #∇θV(s; θ)
+    random_state = np.random.RandomState(seed)
+    eta = np.linspace(eta, 0, max_episodes)
+    epsilon = np.linspace(epsilon, 0, max_episodes)
 
-#         # TODO:
+    theta = np.zeros(env.n_features)
 
-#         done = False
-#         while not done:
-#             s2, reward, done, info = env.step(action) 
-#             action1 = policy 
+    for i in range(max_episodes):
+        features = env.reset()
+        q = features.dot(theta)
 
-#             #Theta Value
-#             #θ ← θ + α[r + γV(s2; θ) − V(s; θ)]∇θV(s; θ)
-#             theta =  theta + eta * (reward + (gamma * q[s2]) - q[s]) * gradientThetaFeatures
-#             s = s2 
-    
-#     return theta
+        # TODO:
+        done = False
+        if rand.uniform(0, 1) > (1 - epsilon[i]):
+            action = np.argmax(q)
+        else:
+            action = random_state.randint(env.n_actions)
+
+        while not done:
+            s1, reward, done = env.step(action)
+            delta = reward - q[action]
+            q = s1.dot(theta)
+            if rand.uniform(0, 1) > (1 - epsilon[i]):
+                action1 = np.argmax(q)
+            else:
+                action1 = random_state.randint(env.n_actions)
+            delta += gamma * q[action1]
+            theta += (eta[i] * delta * features[action])
+
+            action = action1
+            features = s1
+
+    return theta
     
 def linear_q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):
     random_state = np.random.RandomState(seed)
@@ -505,19 +511,17 @@ def main():
     
     linear_env = LinearWrapper(env)
     
-    # print('## Linear Sarsa')
+    print('## Linear Sarsa')
     
-    # parameters = linear_sarsa(linear_env, max_episodes, eta,
-    #                           gamma, epsilon, seed=seed)
-    # policy, value = linear_env.decode_policy(parameters)
-    # linear_env.render(policy, value)
+    parameters = linear_sarsa(linear_env, max_episodes, eta, gamma, epsilon, seed=seed)
+    policy, value = linear_env.decode_policy(parameters)
+    linear_env.render(policy, value)
     
-    # print('')
+    print('')
     
     print('## Linear Q-learning')
     
-    parameters = linear_q_learning(linear_env, max_episodes, eta,
-                                    gamma, epsilon, seed=seed)
+    parameters = linear_q_learning(linear_env, max_episodes, eta, gamma, epsilon, seed=seed)
     policy, value = linear_env.decode_policy(parameters)
     linear_env.render(policy, value)
 
